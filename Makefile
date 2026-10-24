@@ -1,4 +1,5 @@
 PREFIX ?= /usr
+PYTHON ?= python3
 
 .PHONY: install check
 install:
@@ -11,5 +12,5 @@ install:
 	install -Dm644 LICENSE $(DESTDIR)$(PREFIX)/share/licenses/mdviewer/LICENSE
 
 check:
-	python -m unittest discover -v
+	$(PYTHON) -m unittest discover -v
 	desktop-file-validate local.mdviewer.desktop

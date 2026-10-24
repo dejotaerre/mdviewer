@@ -25,7 +25,35 @@ Capturas reales de mdviewer en GNOME, con el documento de bienvenida y zoom al 8
 - Integración con «Abrir con» en el gestor de archivos.
 - Enlaces web abiertos en el navegador del sistema.
 
-## Instalar en CachyOS o Arch Linux
+## Paquetes para Linux
+
+Descarga el formato adecuado desde [Releases](https://github.com/dejotaerre/mdviewer/releases/latest).
+
+| Familia | Paquete | Versiones objetivo |
+| --- | --- | --- |
+| Arch Linux / CachyOS | `.pkg.tar.zst` | Sistema actualizado |
+| Debian / Ubuntu | `.deb` | Debian 13, Ubuntu 24.04 |
+| Fedora | `.rpm` | Fedora 44 |
+
+Los paquetes DEB y RPM son `all` / `noarch`: contienen Python y recursos, sin binarios específicos de una CPU. Las dependencias nativas deben estar disponibles para tu arquitectura. Las pruebas de integración se realizan en contenedores x86_64.
+
+### Debian y Ubuntu
+
+```sh
+sudo apt install ./mdviewer_0.1.1-1_all.deb
+```
+
+### Fedora
+
+```sh
+sudo dnf install ./mdviewer-0.1.1-1.fc44.noarch.rpm
+```
+
+El RPM se prepara para Fedora. No se anuncia compatibilidad con openSUSE, RHEL o derivados: los nombres y versiones de sus dependencias pueden ser diferentes. Debian 12 y Ubuntu 22.04 tampoco son objetivos de esta versión: se necesitan GTK 4.10+, libadwaita 1.4+ y WebKitGTK 6.
+
+Todos los formatos instalan mdviewer para los usuarios del equipo, sin cambiar sus asociaciones de archivos. Son paquetes de este proyecto, no paquetes firmados ni publicados en los repositorios oficiales de las distribuciones.
+
+### CachyOS o Arch Linux
 
 Con `base-devel` y Git instalados:
 
@@ -81,11 +109,27 @@ La instalación no impone asociaciones a otros usuarios.
 Con las dependencias instaladas:
 
 ```sh
-python mdviewer.py BIENVENIDA.md
+python3 mdviewer.py BIENVENIDA.md
 make check
 ```
 
 La aplicación busca `style.css` junto a `mdviewer.py`, por lo que funciona directamente desde el repositorio. El lanzador del paquete usa `/usr/share/mdviewer/`. La instalación soportada utiliza el prefijo `/usr`.
+
+### Construir DEB y RPM
+
+En Debian/Ubuntu, con `make` y `dpkg-dev` instalados:
+
+```sh
+./packaging/build-deb.sh
+```
+
+En Fedora, con `make` y `rpm-build` instalados:
+
+```sh
+./packaging/build-rpm.sh
+```
+
+Los resultados quedan en `dist/`. El constructor RPM también genera el paquete de fuentes `.src.rpm`. Las recetas están en `packaging/` y el lanzador utiliza `/usr/bin/python3` en todos los formatos.
 
 ## Alcance de esta versión
 
