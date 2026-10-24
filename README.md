@@ -2,6 +2,20 @@
 
 Un visor Markdown de solo lectura para GNOME. Interfaz nativa con GTK 4 y libadwaita, tipografía cómoda y tema claro u oscuro según las preferencias del escritorio.
 
+[Descargar la última versión](https://github.com/dejotaerre/mdviewer/releases/latest) · [Licencia MIT](LICENSE)
+
+## Capturas
+
+Capturas reales de mdviewer en GNOME, con el documento de bienvenida y zoom al 80 %.
+
+### Tema oscuro
+
+![mdviewer en tema oscuro: títulos, tablas y código Python resaltado](docs/capturas/oscuro.png)
+
+### Tema claro
+
+![mdviewer en tema claro: lectura de Markdown con tablas y código resaltado](docs/capturas/claro.png)
+
 ## Funciones
 
 - Apertura de archivos, arrastrar y soltar y varias ventanas.
