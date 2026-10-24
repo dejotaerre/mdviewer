@@ -18,6 +18,7 @@ Capturas reales de mdviewer en GNOME, con el documento de bienvenida y zoom al 8
 
 ## Funciones
 
+- Paleta azul, turquesa y ciruela adaptada por separado a los temas claro y oscuro.
 - Apertura de archivos, arrastrar y soltar y varias ventanas.
 - Tablas, listas, citas, tachado y código resaltado con Pygments.
 - Imágenes locales y enlaces entre documentos Markdown.
@@ -40,13 +41,13 @@ Los paquetes DEB y RPM son `all` / `noarch`: contienen Python y recursos, sin bi
 ### Debian y Ubuntu
 
 ```sh
-sudo apt install ./mdviewer_0.1.1-1_all.deb
+sudo apt install ./mdviewer_0.1.2-1_all.deb
 ```
 
 ### Fedora
 
 ```sh
-sudo dnf install ./mdviewer-0.1.1-1.fc44.noarch.rpm
+sudo dnf install ./mdviewer-0.1.2-1.fc44.noarch.rpm
 ```
 
 El RPM se prepara para Fedora. No se anuncia compatibilidad con openSUSE, RHEL o derivados: los nombres y versiones de sus dependencias pueden ser diferentes. Debian 12 y Ubuntu 22.04 tampoco son objetivos de esta versión: se necesitan GTK 4.10+, libadwaita 1.4+ y WebKitGTK 6.

@@ -1,27 +1,29 @@
-:root { color-scheme: light; --bg: #faf9f6; --fg: #292d32; --muted: #626a73; --line: #dedfdc; --panel: #efefeb; --link: #206b9b; --quote: #e6eef0; }
-:root.dark { color-scheme: dark; --bg: #202326; --fg: #e5e6e1; --muted: #a9b0b6; --line: #43484d; --panel: #2b3035; --link: #87c5ed; --quote: #283940; }
+:root { color-scheme: light; --bg: #faf9f6; --fg: #292d32; --muted: #626a73; --line: #dedfdc; --panel: #efefeb; --link: #206b9b; --quote: #e8f2f1; --title: #245b8f; --heading: #176b67; --accent: #16847d; --code: #794475; --code-bg: #f1e8ef; --table-head: #e6eef7; --table-stripe: #f1f5f8; }
+:root.dark { color-scheme: dark; --bg: #202326; --fg: #e5e6e1; --muted: #a9b0b6; --line: #43484d; --panel: #2b3035; --link: #87c5ed; --quote: #253837; --title: #91c4f2; --heading: #83cec4; --accent: #64bdb3; --code: #ddb0d5; --code-bg: #3b2e3c; --table-head: #293b4e; --table-stripe: #262d34; }
 * { box-sizing: border-box; }
 html { background: var(--bg); color: var(--fg); }
 body { margin: 0; font: 17px/1.75 "Adwaita Sans", "Cantarell", sans-serif; overflow-wrap: anywhere; }
 main { max-width: 860px; margin: 0 auto; padding: 44px 48px 90px; }
 h1, h2, h3, h4, h5, h6 { line-height: 1.3; font-weight: 700; letter-spacing: -.025em; scroll-margin-top: 24px; }
-h1 { font-size: 2.35em; margin: 0 0 .8em; }
-h2 { font-size: 1.65em; margin-top: 1.8em; border-bottom: 1px solid var(--line); padding-bottom: .35em; }
+h1 { color: var(--title); font-size: 2.35em; margin: 0 0 .8em; }
+h2 { color: var(--heading); font-size: 1.65em; margin-top: 1.8em; border-bottom: 1px solid var(--line); padding-bottom: .35em; }
+h3, h4, h5, h6 { color: var(--heading); }
 h3 { font-size: 1.25em; margin-top: 1.6em; }
 p, ul, ol { margin: 1em 0; }
 li { padding-left: .2em; }
 li + li { margin-top: .3em; }
 a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-blockquote { margin: 1.4em 0; padding: .2em 1.2em; border-left: 4px solid var(--link); border-radius: 0 8px 8px 0; background: var(--quote); }
+blockquote { margin: 1.4em 0; padding: .2em 1.2em; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--quote); }
 code { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: .88em; }
-:not(pre) > code { background: var(--panel); border-radius: 5px; padding: .15em .35em; }
+:not(pre) > code { color: var(--code); background: var(--code-bg); border-radius: 5px; padding: .15em .35em; }
 pre { padding: 20px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; line-height: 1.6; background: var(--panel); overflow-wrap: normal; }
 .highlight { border-radius: 10px; }
 .highlight pre { background: transparent; }
 table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1.5em 0; font-size: .94em; }
 th, td { border: 1px solid var(--line); text-align: left; padding: 10px 16px; }
-th { background: var(--panel); font-weight: 650; }
+th { color: var(--title); background: var(--table-head); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--table-stripe); }
 img { max-width: 100%; height: auto; border-radius: 8px; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
 ::selection { background: #78b8d766; }
-@media (max-width: 600px) { main { padding: 26px 22px 60px; } body { font-size: 16px; } h1 { font-size: 1.9em; } }
+@media (max-width: 600px) { main { padding: 26px 22px 60px; } body { font-size: 16px; } h1 { color: var(--title); font-size: 1.9em; } }
