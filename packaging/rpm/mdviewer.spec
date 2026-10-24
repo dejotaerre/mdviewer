@@ -1,5 +1,5 @@
 Name:           mdviewer
-Version:        0.1.2
+Version:        0.1.3
 Release:        1%{?dist}
 Summary:        Visor Markdown de solo lectura para GNOME
 License:        MIT
@@ -33,10 +33,14 @@ install -Dm644 docs/capturas/oscuro.png %{buildroot}%{_docdir}/mdviewer/docs/cap
 %{_bindir}/mdviewer
 %{_datadir}/mdviewer/
 %{_datadir}/applications/local.mdviewer.desktop
+%{_datadir}/icons/hicolor/scalable/apps/local.mdviewer.svg
 %doc %{_docdir}/mdviewer/
 %license %{_datadir}/licenses/mdviewer/LICENSE
 
 %changelog
+* Sat Oct 24 2026 Dejotaerre <126120344+dejotaerre@users.noreply.github.com> - 0.1.3-1
+- Icono propio integrado en GNOME.
+
 * Sat Oct 24 2026 Dejotaerre <126120344+dejotaerre@users.noreply.github.com> - 0.1.2-1
 - Colores adaptados a los temas claro y oscuro.
 

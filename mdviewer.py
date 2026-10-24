@@ -51,6 +51,7 @@ def render(source, dark=False):
 class Window(Adw.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title='mdviewer', default_width=1000, default_height=800)
+        self.set_icon_name('local.mdviewer')
         self.path = None
         self.source = ''
         self.style = Adw.StyleManager.get_default()
@@ -97,7 +98,7 @@ class Window(Adw.ApplicationWindow):
         box.append(self.search_bar)
         self.stack = Gtk.Stack(vexpand=True)
         box.append(self.stack)
-        welcome = Adw.StatusPage(title='mdviewer', description='Tus archivos Markdown, claros y cómodos de leer.\nAbre un archivo o arrástralo a esta ventana.', icon_name='text-x-generic-symbolic')
+        welcome = Adw.StatusPage(title='mdviewer', description='Tus archivos Markdown, claros y cómodos de leer.\nAbre un archivo o arrástralo a esta ventana.', icon_name='local.mdviewer')
         button = Gtk.Button(label='Abrir archivo…', action_name='win.open', halign=Gtk.Align.CENTER)
         button.add_css_class('suggested-action')
         welcome.set_child(button)

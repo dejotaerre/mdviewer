@@ -1,5 +1,7 @@
 # mdviewer
 
+![Icono de mdviewer](local.mdviewer.svg)
+
 Un visor Markdown de solo lectura para GNOME. Interfaz nativa con GTK 4 y libadwaita, tipografía cómoda y tema claro u oscuro según las preferencias del escritorio.
 
 [Descargar la última versión](https://github.com/dejotaerre/mdviewer/releases/latest) · [Licencia MIT](LICENSE)
@@ -41,13 +43,13 @@ Los paquetes DEB y RPM son `all` / `noarch`: contienen Python y recursos, sin bi
 ### Debian y Ubuntu
 
 ```sh
-sudo apt install ./mdviewer_0.1.2-1_all.deb
+sudo apt install ./mdviewer_0.1.3-1_all.deb
 ```
 
 ### Fedora
 
 ```sh
-sudo dnf install ./mdviewer-0.1.2-1.fc44.noarch.rpm
+sudo dnf install ./mdviewer-0.1.3-1.fc44.noarch.rpm
 ```
 
 El RPM se prepara para Fedora. No se anuncia compatibilidad con openSUSE, RHEL o derivados: los nombres y versiones de sus dependencias pueden ser diferentes. Debian 12 y Ubuntu 22.04 tampoco son objetivos de esta versión: se necesitan GTK 4.10+, libadwaita 1.4+ y WebKitGTK 6.
