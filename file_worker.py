@@ -3,6 +3,7 @@ import json
 import stat
 import sys
 from pathlib import Path
+from gi.repository import Gio, GLib
 
 MAX_BYTES = 10 * 1024 * 1024
 
@@ -14,11 +15,42 @@ def read_document(name):
         raise ValueError('Selecciona un archivo normal, no un directorio o dispositivo.')
     if info.st_size > MAX_BYTES:
         raise ValueError('El archivo supera el límite de 10 MB.')
+    file = Gio.File.new_for_path(str(path))
+    etag = file.query_info('etag::value', Gio.FileQueryInfoFlags.NONE, None).get_etag()
     with path.open('rb') as stream:
         data = stream.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
         raise ValueError('El archivo supera el límite de 10 MB.')
-    return {'path': str(path), 'source': data.decode('utf-8-sig')}
+    current = file.query_info('etag::value', Gio.FileQueryInfoFlags.NONE, None).get_etag()
+    if not etag or etag != current:
+        raise ValueError('El archivo cambió durante la lectura. Vuelve a abrirlo.')
+    text = data.decode('utf-8-sig')
+    newline = '\r\n' if '\r\n' in text and text.count('\n') == text.count('\r\n') else '\n'
+    return {'path': str(path), 'source': text.replace('\r\n', '\n'),
+            'etag': etag, 'bom': data.startswith(b'\xef\xbb\xbf'), 'newline': newline}
+
+
+def save_document(name, payload):
+    path = Path(name)
+    if not stat.S_ISREG(path.stat().st_mode):
+        raise ValueError('El destino ya no es un archivo normal.')
+    file = Gio.File.new_for_path(str(path))
+    etag = payload['etag']
+    if not etag:
+        raise ValueError('Vuelve a abrir el archivo antes de guardarlo.')
+    data = payload['source'].replace('\n', payload.get('newline', '\n')).encode('utf-8')
+    if payload.get('bom'):
+        data = b'\xef\xbb\xbf' + data
+    if len(data) > MAX_BYTES:
+        raise ValueError('El documento supera el límite de 10 MB.')
+    try:
+        _, new_etag = file.replace_contents(data, etag, True, Gio.FileCreateFlags.NONE, None)
+    except GLib.Error as error:
+        if error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.WRONG_ETAG):
+            raise ValueError('El archivo cambió fuera de mdviewer. No se sobrescribió; conserva tus cambios antes de recargar.') from error
+        raise
+    return {'etag': new_etag}
+
 
 
 def choose_file():
@@ -60,7 +92,12 @@ def choose_file():
 
 if __name__ == '__main__':
     try:
-        result = choose_file() if sys.argv[1] == 'choose' else read_document(sys.argv[2])
-    except (OSError, UnicodeError, ValueError) as error:
+        if sys.argv[1] == 'choose':
+            result = choose_file()
+        elif sys.argv[1] == 'save':
+            result = save_document(sys.argv[2], json.load(sys.stdin))
+        else:
+            result = read_document(sys.argv[2])
+    except (OSError, UnicodeError, ValueError, GLib.Error) as error:
         result = {'error': str(error)}
     print(json.dumps(result, ensure_ascii=True), flush=True)

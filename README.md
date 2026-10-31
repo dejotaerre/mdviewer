@@ -2,7 +2,7 @@
 
 ![Icono de mdviewer](local.mdviewer.svg)
 
-Un visor Markdown de solo lectura para GNOME. Interfaz nativa con GTK 4 y libadwaita, tipografía cómoda y tema claro u oscuro según las preferencias del escritorio.
+Un visor Markdown con edición opcional para GNOME. Interfaz nativa con GTK 4 y libadwaita, tipografía cómoda y tema claro u oscuro según las preferencias del escritorio.
 
 [Descargar la última versión](https://github.com/dejotaerre/mdviewer/releases/latest) · [Licencia MIT](LICENSE)
 
@@ -44,13 +44,13 @@ Los paquetes DEB y RPM son `all` / `noarch`: contienen Python y recursos, sin bi
 ### Debian y Ubuntu
 
 ```sh
-sudo apt install ./mdviewer_0.1.4-1_all.deb
+sudo apt install ./mdviewer_0.2.0-1_all.deb
 ```
 
 ### Fedora
 
 ```sh
-sudo dnf install ./mdviewer-0.1.4-1.fc44.noarch.rpm
+sudo dnf install ./mdviewer-0.2.0-1.fc44.noarch.rpm
 ```
 
 El RPM se prepara para Fedora. No se anuncia compatibilidad con openSUSE, RHEL o derivados: los nombres y versiones de sus dependencias pueden ser diferentes. Debian 12 y Ubuntu 22.04 tampoco son objetivos de esta versión: se necesitan GTK 4.10+, libadwaita 1.4+ y WebKitGTK 6.
@@ -145,10 +145,18 @@ Esta protección pertenece a la aplicación: no cambia montajes, conexiones, mar
 
 ## Alcance de esta versión
 
-Acepta archivos locales UTF-8, con o sin BOM, hasta 10 MB. No modifica los documentos. Las imágenes remotas no se descargan; el HTML incrustado se muestra como texto y JavaScript está desactivado. Los diagramas Mermaid se muestran como código; no hay renderizado de fórmulas matemáticas ni recarga automática.
+Acepta archivos locales UTF-8, con o sin BOM, hasta 10 MB. Inicia en modo lectura; permite editar el documento abierto. Las imágenes remotas no se descargan; el HTML incrustado se muestra como texto y JavaScript está desactivado. Los diagramas Mermaid se muestran como código; no hay renderizado de fórmulas matemáticas ni recarga automática.
 
 El cambio de tema vuelve a cargar el documento y puede reiniciar la posición de lectura.
 
 ## Créditos
 
 Creado por Dejotaerre. Construido con Python, GTK, libadwaita, WebKitGTK, markdown-it-py y Pygments.
+
+## Edición opcional
+
+Pulsa **Editar** o **Ctrl+E** para modificar el Markdown del archivo abierto. El mismo botón alterna con la vista previa. **Ctrl+S** guarda los cambios; el editor permite deshacer y rehacer con los atajos habituales. Al cerrar, recargar o abrir otro documento, mdviewer pregunta si quieres guardar o descartar los cambios.
+
+El guardado conserva el BOM y los saltos de línea CRLF de archivos UTF-8, crea una copia anterior con sufijo `~` y rechaza sobrescribir un archivo que otro programa haya modificado desde su apertura. Actualmente se editan archivos existentes; no hay «Guardar como».
+
+El guardado también utiliza un proceso separado y un plazo de 15 segundos. Si se cancela o vence el plazo, conserva el texto editado y avisa que debes comprobar el archivo: cancelar no deshace una escritura que ya se haya completado.

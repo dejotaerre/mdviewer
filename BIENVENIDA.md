@@ -32,7 +32,7 @@ print(saludar("Héctor"))
 - El aspecto claro u oscuro sigue la preferencia de GNOME.
 - Las imágenes locales se muestran junto al texto.
 - Los enlaces web se abren en tu navegador.
-- Los archivos originales se conservan: este visor es de **solo lectura**.
+- **Editar / Ctrl+E** alterna entre edición y vista previa. **Ctrl+S** guarda los cambios y conserva una copia anterior con sufijo `~`.
 
 ---
 

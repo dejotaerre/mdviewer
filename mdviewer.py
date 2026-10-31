@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import html
+import json
 import os
 import re
 import sys
@@ -58,6 +59,11 @@ class Window(Adw.ApplicationWindow):
         self.job = None
         self.path = None
         self.source = ''
+        self.saved_source = ''
+        self.file_metadata = {}
+        self.saving = False
+        self.confirmation = None
+        self.closing = False
         self.style = Adw.StyleManager.get_default()
         self.style_handler = self.style.connect('notify::dark', self.theme_changed)
         self.connect('close-request', self.on_close)
@@ -69,6 +75,13 @@ class Window(Adw.ApplicationWindow):
         self.heading = Adw.WindowTitle(title='mdviewer', subtitle='Un lugar tranquilo para leer Markdown')
         header.set_title_widget(self.heading)
         layout.add_top_bar(header)
+        self.action('edit', self.toggle_editor, ['<Primary>e'])
+        self.action('save', self.save_document, ['<Primary>s'])
+        self.edit_button = Gtk.Button(label='Editar', tooltip_text='Editar / vista previa (Ctrl+E)', action_name='win.edit')
+        header.pack_start(self.edit_button)
+        header.pack_start(Gtk.Button(icon_name='document-save-symbolic', tooltip_text='Guardar (Ctrl+S)', action_name='win.save'))
+        self.lookup_action('edit').set_enabled(False)
+        self.lookup_action('save').set_enabled(False)
         self.action('open', self.choose_file, ['<Primary>o'])
         self.action('reload', self.reload_file, ['<Primary>r'])
         self.action('find', self.show_search, ['<Primary>f'])
@@ -114,6 +127,14 @@ class Window(Adw.ApplicationWindow):
         settings.set_allow_universal_access_from_file_urls(False)
         self.web.connect('decide-policy', self.navigate)
         self.stack.add_named(self.web, 'document')
+        self.editor = Gtk.TextView(monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR,
+                                   left_margin=24, right_margin=24, top_margin=24, bottom_margin=24)
+        self.buffer = self.editor.get_buffer()
+        self.buffer.set_enable_undo(True)
+        self.buffer.connect('changed', self.editor_changed)
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_child(self.editor)
+        self.stack.add_named(scroll, 'editor')
         self.activity = Gtk.Box(spacing=12, margin_start=18, margin_end=18, margin_top=8, margin_bottom=8)
         self.activity_label = Gtk.Label(hexpand=True, xalign=0)
         self.activity.append(self.activity_label)
@@ -136,21 +157,129 @@ class Window(Adw.ApplicationWindow):
         self.get_application().set_accels_for_action('win.' + name, shortcuts)
 
     def on_close(self, *_):
+        if self.saving:
+            self.toast('Espera a que termine el guardado o cancélalo antes de cerrar.')
+            return True
+        if self.dirty and not self.closing:
+            self.confirm_discard(self.finish_close)
+            return True
         self.cancel_job()
         self.style.disconnect(self.style_handler)
         return False
+
+    @property
+    def dirty(self):
+        return self.source != self.saved_source
+
+    def finish_close(self):
+        self.closing = True
+        self.close()
+
+    def confirm_discard(self, continuation):
+        if self.saving:
+            self.toast('Espera a que termine el guardado o cancélalo.')
+            return
+        if not self.dirty:
+            continuation()
+            return
+        if self.confirmation:
+            self.confirmation.present()
+            return
+        dialog = Adw.MessageDialog(transient_for=self, modal=True,
+                                  heading='¿Guardar los cambios?',
+                                  body='El documento tiene cambios sin guardar.')
+        self.confirmation = dialog
+        dialog.add_response('cancel', 'Cancelar')
+        dialog.add_response('discard', 'Descartar cambios')
+        dialog.add_response('save', 'Guardar')
+        dialog.set_response_appearance('discard', Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_response_appearance('save', Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response('save')
+        dialog.set_close_response('cancel')
+        def response(dialog, choice):
+            self.confirmation = None
+            if choice == 'discard':
+                continuation()
+            elif choice == 'save':
+                self.save_document(continuation)
+        dialog.connect('response', response)
+        dialog.present()
+
+    def update_document_state(self):
+        if not self.path:
+            return
+        mark = '• ' if self.dirty else ''
+        self.heading.set_title(mark + self.path.name)
+        self.set_title(mark + self.path.name + ' — mdviewer')
+        editing = self.stack.get_visible_child_name() == 'editor'
+        self.edit_button.set_label('Vista previa' if editing else 'Editar')
+        state = 'Cambios sin guardar' if self.dirty else ('Edición' if editing else 'Lectura')
+        self.status.set_label(f'{state} · {len(self.source.split()):,} palabras · {self.path.name}')
+        self.lookup_action('edit').set_enabled(not self.saving)
+        self.lookup_action('save').set_enabled(self.dirty and not self.saving)
+
+    def editor_changed(self, *_):
+        if self.job and not self.saving:
+            self.cancel_job()
+        self.source = self.buffer.get_text(*self.buffer.get_bounds(), True)
+        self.update_document_state()
+
+    def toggle_editor(self):
+        if not self.path or self.saving:
+            return
+        if self.stack.get_visible_child_name() == 'editor':
+            self.display_document()
+        else:
+            self.cancel_job()
+            self.search_bar.set_search_mode(False)
+            self.stack.set_visible_child_name('editor')
+            self.editor.grab_focus()
+        self.update_document_state()
+
+    def save_document(self, continuation=None):
+        if not self.path or self.saving:
+            return
+        if not self.dirty:
+            if continuation:
+                continuation()
+            return
+        snapshot = self.source
+        payload = dict(self.file_metadata, source=snapshot)
+        self.cancel_job()
+        self.saving = True
+        self.editor.set_editable(False)
+        self.update_document_state()
+        def saved(result):
+            self.saved_source = snapshot
+            self.file_metadata['etag'] = result['etag']
+            self.update_document_state()
+            self.toast('Archivo guardado.')
+            if continuation and not self.dirty:
+                continuation()
+        self.start_job('save', [str(self.path)], 'Guardando archivo…', 15000, saved,
+                       input_text=json.dumps(payload), cancel_previous=False)
 
     def toast(self, message):
         self.overlay.add_toast(Adw.Toast(title=message))
 
     def cancel_job(self):
+        was_saving = self.saving
         job, self.job = self.job, None
         if job:
             job.cancel()
         self.activity.set_visible(False)
+        self.finish_saving()
+        if was_saving:
+            self.toast('Guardado sin confirmar. Conserva tus cambios y comprueba el archivo antes de reintentar.')
 
-    def start_job(self, mode, args, label, timeout_ms, callback):
-        self.cancel_job()
+    def finish_saving(self):
+        self.saving = False
+        self.editor.set_editable(True)
+        self.update_document_state()
+
+    def start_job(self, mode, args, label, timeout_ms, callback, input_text=None, cancel_previous=True):
+        if cancel_previous:
+            self.cancel_job()
         self.activity_label.set_label(label)
         self.activity.set_visible(True)
 
@@ -159,27 +288,38 @@ class Window(Adw.ApplicationWindow):
                 return
             self.job = None
             self.activity.set_visible(False)
+            self.finish_saving()
+            if mode == 'save' and (result.get('timeout') or result.get('cancelled')):
+                self.toast('Guardado sin confirmar. Tus cambios siguen en el editor; comprueba el archivo antes de reintentar.')
+                return
             if result.get('timeout'):
                 self.toast('La operación tardó demasiado. La ubicación o el selector no responde.')
             elif result.get('error'):
-                self.toast('No se pudo abrir: ' + result['error'])
+                self.toast('No se pudo completar la operación: ' + result['error'])
             elif not result.get('cancelled'):
                 callback(result)
 
         try:
             job = BackgroundJob(
                 [sys.executable, str(ROOT / 'file_worker.py'), mode, *args],
-                timeout_ms, completed)
+                timeout_ms, completed, **({'input_text': input_text} if input_text is not None else {}))
             self.job = job
         except GLib.Error as error:
             self.activity.set_visible(False)
+            self.finish_saving()
             self.toast('No se pudo iniciar la apertura: ' + error.message)
 
     def choose_file(self):
+        self.confirm_discard(self.choose_file_confirmed)
+
+    def choose_file_confirmed(self):
         self.start_job('choose', [], 'Selecciona un archivo…', 120000,
-                       lambda result: self.open_file(Gio.File.new_for_path(result['path'])))
+                       lambda result: self.open_file_confirmed(Gio.File.new_for_path(result['path'])))
 
     def open_file(self, file):
+        self.confirm_discard(lambda: self.open_file_confirmed(file))
+
+    def open_file_confirmed(self, file):
         name = file.get_path()
         if not name:
             self.toast('Selecciona un archivo local o montado.')
@@ -188,19 +328,24 @@ class Window(Adw.ApplicationWindow):
 
     def document_loaded(self, result):
         self.path = Path(result['path'])
-        self.source = result['source']
+        self.saved_source = result['source']
+        self.file_metadata = {key: result[key] for key in ('etag', 'bom', 'newline')}
+        self.buffer.set_enable_undo(False)
+        self.buffer.set_text(result['source'])
+        self.buffer.set_enable_undo(True)
         self.heading.set_title(self.path.name)
         self.heading.set_subtitle(str(self.path.parent))
         self.set_title(self.path.name + ' — mdviewer')
         self.status.set_label(f'Solo lectura · {len(self.source.split()):,} palabras · {self.path.name}')
         self.display_document()
+        self.update_document_state()
 
     def display_document(self):
         self.web.load_html(render(self.source, self.style.get_dark()), self.path.as_uri())
         self.stack.set_visible_child_name('document')
 
     def theme_changed(self, *_):
-        if self.path:
+        if self.path and self.stack.get_visible_child_name() != 'editor':
             self.display_document()
 
     def reload_file(self):
@@ -212,6 +357,9 @@ class Window(Adw.ApplicationWindow):
 
     def show_search(self):
         if self.path:
+            if self.stack.get_visible_child_name() == 'editor':
+                self.display_document()
+                self.update_document_state()
             self.search_bar.set_search_mode(True)
             self.search.grab_focus()
 

@@ -5,13 +5,13 @@ from gi.repository import Gio, GLib
 class BackgroundJob:
     """Aísla operaciones bloqueantes sin esperar su salida en el hilo gráfico."""
 
-    def __init__(self, argv, timeout_ms, callback):
+    def __init__(self, argv, timeout_ms, callback, input_text=None):
         self.callback = callback
         self.finished = False
         self.cancellable = Gio.Cancellable()
-        self.process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE)
+        self.process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | (Gio.SubprocessFlags.STDIN_PIPE if input_text is not None else Gio.SubprocessFlags.NONE))
         self.timer = GLib.timeout_add(timeout_ms, self._timeout)
-        self.process.communicate_utf8_async(None, self.cancellable, self._completed)
+        self.process.communicate_utf8_async(input_text, self.cancellable, self._completed)
 
     def _finish(self, result):
         if self.finished:

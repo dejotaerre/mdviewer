@@ -15,7 +15,11 @@ class DocumentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / 'nota.MD'
             path.write_bytes(b'\xef\xbb\xbf# Hola')
-            self.assertEqual(read_document(str(path)), {'path': str(path), 'source': '# Hola'})
+            result = read_document(str(path))
+            self.assertEqual(result['path'], str(path))
+            self.assertEqual(result['source'], '# Hola')
+            self.assertTrue(result['etag'])
+            self.assertTrue(result['bom'])
 
     def test_reject_missing_invalid_large_and_special_files(self):
         with tempfile.TemporaryDirectory() as root:

@@ -1,7 +1,7 @@
 Name:           mdviewer
-Version:        0.1.4
+Version:        0.2.0
 Release:        1%{?dist}
-Summary:        Visor Markdown de solo lectura para GNOME
+Summary:        Visor Markdown con edición opcional para GNOME
 License:        MIT
 URL:            https://github.com/dejotaerre/mdviewer
 Source0:        %{name}-%{version}.tar.gz
@@ -38,6 +38,9 @@ install -Dm644 docs/capturas/oscuro.png %{buildroot}%{_docdir}/mdviewer/docs/cap
 %license %{_datadir}/licenses/mdviewer/LICENSE
 
 %changelog
+* Sat Oct 31 2026 Dejotaerre <126120344+dejotaerre@users.noreply.github.com> - 0.2.0-1
+- Edicion opcional, vista previa y guardado protegido contra conflictos.
+
 * Sat Oct 31 2026 Dejotaerre <126120344+dejotaerre@users.noreply.github.com> - 0.1.4-1
 - Apertura cancelable en procesos aislados para evitar bloqueos por E/S remota.
 
