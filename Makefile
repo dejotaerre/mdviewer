@@ -4,6 +4,8 @@ PYTHON ?= python3
 .PHONY: install check
 install:
 	install -Dm755 mdviewer $(DESTDIR)$(PREFIX)/bin/mdviewer
+	install -Dm644 background_io.py $(DESTDIR)$(PREFIX)/share/mdviewer/background_io.py
+	install -Dm644 file_worker.py $(DESTDIR)$(PREFIX)/share/mdviewer/file_worker.py
 	install -Dm644 mdviewer.py $(DESTDIR)$(PREFIX)/share/mdviewer/mdviewer.py
 	install -Dm644 local.mdviewer.svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/local.mdviewer.svg
 	install -Dm644 style.css $(DESTDIR)$(PREFIX)/share/mdviewer/style.css

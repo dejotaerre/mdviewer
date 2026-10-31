@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import html
+import os
 import re
 import sys
 from pathlib import Path
@@ -16,6 +17,8 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 from pygments.util import ClassNotFound
+
+from background_io import BackgroundJob
 
 ROOT = Path(__file__).resolve().parent
 
@@ -52,6 +55,7 @@ class Window(Adw.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title='mdviewer', default_width=1000, default_height=800)
         self.set_icon_name('local.mdviewer')
+        self.job = None
         self.path = None
         self.source = ''
         self.style = Adw.StyleManager.get_default()
@@ -110,6 +114,14 @@ class Window(Adw.ApplicationWindow):
         settings.set_allow_universal_access_from_file_urls(False)
         self.web.connect('decide-policy', self.navigate)
         self.stack.add_named(self.web, 'document')
+        self.activity = Gtk.Box(spacing=12, margin_start=18, margin_end=18, margin_top=8, margin_bottom=8)
+        self.activity_label = Gtk.Label(hexpand=True, xalign=0)
+        self.activity.append(self.activity_label)
+        cancel = Gtk.Button(label='Cancelar')
+        cancel.connect('clicked', lambda *_: self.cancel_job())
+        self.activity.append(cancel)
+        self.activity.set_visible(False)
+        box.append(self.activity)
         self.status = Gtk.Label(label='Solo lectura · Ctrl+O para abrir', xalign=0, margin_start=18, margin_end=18, margin_top=7, margin_bottom=7, ellipsize=3)
         self.status.add_css_class('dim-label')
         box.append(self.status)
@@ -124,51 +136,63 @@ class Window(Adw.ApplicationWindow):
         self.get_application().set_accels_for_action('win.' + name, shortcuts)
 
     def on_close(self, *_):
+        self.cancel_job()
         self.style.disconnect(self.style_handler)
         return False
 
     def toast(self, message):
         self.overlay.add_toast(Adw.Toast(title=message))
 
-    def choose_file(self):
-        dialog = Gtk.FileDialog(title='Abrir Markdown')
-        filters = Gio.ListStore.new(Gtk.FileFilter)
-        markdown = Gtk.FileFilter(name='Markdown (*.md, *.markdown)')
-        for pattern in ['*.[mM][dD]', '*.[mM][aA][rR][kK][dD][oO][wW][nN]']:
-            markdown.add_pattern(pattern)
-        filters.append(markdown)
-        everything = Gtk.FileFilter(name='Todos los archivos')
-        everything.add_pattern('*')
-        filters.append(everything)
-        dialog.set_filters(filters)
-        dialog.open(self, None, self.file_selected)
+    def cancel_job(self):
+        job, self.job = self.job, None
+        if job:
+            job.cancel()
+        self.activity.set_visible(False)
 
-    def file_selected(self, dialog, result):
+    def start_job(self, mode, args, label, timeout_ms, callback):
+        self.cancel_job()
+        self.activity_label.set_label(label)
+        self.activity.set_visible(True)
+
+        def completed(result):
+            if self.job is not job:
+                return
+            self.job = None
+            self.activity.set_visible(False)
+            if result.get('timeout'):
+                self.toast('La operación tardó demasiado. La ubicación o el selector no responde.')
+            elif result.get('error'):
+                self.toast('No se pudo abrir: ' + result['error'])
+            elif not result.get('cancelled'):
+                callback(result)
+
         try:
-            self.open_file(dialog.open_finish(result))
+            job = BackgroundJob(
+                [sys.executable, str(ROOT / 'file_worker.py'), mode, *args],
+                timeout_ms, completed)
+            self.job = job
         except GLib.Error as error:
-            if not error.matches(Gtk.DialogError.quark(), Gtk.DialogError.DISMISSED):
-                self.toast('No se pudo abrir el selector de archivos.')
+            self.activity.set_visible(False)
+            self.toast('No se pudo iniciar la apertura: ' + error.message)
+
+    def choose_file(self):
+        self.start_job('choose', [], 'Selecciona un archivo…', 120000,
+                       lambda result: self.open_file(Gio.File.new_for_path(result['path'])))
 
     def open_file(self, file):
         name = file.get_path()
         if not name:
-            self.toast('Selecciona un archivo local.')
+            self.toast('Selecciona un archivo local o montado.')
             return
-        path = Path(name).resolve()
-        try:
-            if path.stat().st_size > 10 * 1024 * 1024:
-                self.toast('El archivo supera el límite de 10 MB.')
-                return
-            source = path.read_text(encoding='utf-8-sig')
-        except (OSError, UnicodeError) as error:
-            self.toast(f'No se pudo leer el archivo: {error}')
-            return
-        self.path, self.source = path, source
-        self.heading.set_title(path.name)
-        self.heading.set_subtitle(str(path.parent))
-        self.set_title(path.name + ' — mdviewer')
-        self.status.set_label(f'Solo lectura · {len(source.split()):,} palabras · {path.name}')
+        self.start_job('read', [name], 'Abriendo archivo…', 15000, self.document_loaded)
+
+    def document_loaded(self, result):
+        self.path = Path(result['path'])
+        self.source = result['source']
+        self.heading.set_title(self.path.name)
+        self.heading.set_subtitle(str(self.path.parent))
+        self.set_title(self.path.name + ' — mdviewer')
+        self.status.set_label(f'Solo lectura · {len(self.source.split()):,} palabras · {self.path.name}')
         self.display_document()
 
     def display_document(self):
@@ -220,7 +244,7 @@ class Window(Adw.ApplicationWindow):
         uri = navigation.get_request().get_uri()
         parts = urlsplit(uri)
         if self.path and parts.scheme == 'file':
-            path = Path(unquote(parts.path)).resolve()
+            path = Path(os.path.abspath(unquote(parts.path)))
             if path == self.path and parts.fragment:
                 decision.use()
                 return True

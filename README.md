@@ -21,6 +21,7 @@ Capturas reales de mdviewer en GNOME, con el documento de bienvenida y zoom al 8
 ## Funciones
 
 - Paleta azul, turquesa y ciruela adaptada por separado a los temas claro y oscuro.
+- Apertura cancelable: el selector y la lectura funcionan en procesos separados de la ventana.
 - Apertura de archivos, arrastrar y soltar y varias ventanas.
 - Tablas, listas, citas, tachado y código resaltado con Pygments.
 - Imágenes locales y enlaces entre documentos Markdown.
@@ -43,13 +44,13 @@ Los paquetes DEB y RPM son `all` / `noarch`: contienen Python y recursos, sin bi
 ### Debian y Ubuntu
 
 ```sh
-sudo apt install ./mdviewer_0.1.3-1_all.deb
+sudo apt install ./mdviewer_0.1.4-1_all.deb
 ```
 
 ### Fedora
 
 ```sh
-sudo dnf install ./mdviewer-0.1.3-1.fc44.noarch.rpm
+sudo dnf install ./mdviewer-0.1.4-1.fc44.noarch.rpm
 ```
 
 El RPM se prepara para Fedora. No se anuncia compatibilidad con openSUSE, RHEL o derivados: los nombres y versiones de sus dependencias pueden ser diferentes. Debian 12 y Ubuntu 22.04 tampoco son objetivos de esta versión: se necesitan GTK 4.10+, libadwaita 1.4+ y WebKitGTK 6.
@@ -133,6 +134,14 @@ En Fedora, con `make` y `rpm-build` instalados:
 ```
 
 Los resultados quedan en `dist/`. El constructor RPM también genera el paquete de fuentes `.src.rpm`. Las recetas están en `packaging/` y el lanzador utiliza `/usr/bin/python3` en todos los formatos.
+
+## Ubicaciones que no responden
+
+Desde 0.1.4, Ctrl+O abre el selector en un proceso auxiliar y la lectura del archivo se realiza en otro. Si GTK, un montaje de red o el disco tardan en responder, la ventana conserva el documento anterior y puedes seguir leyendo, buscar, cambiar el zoom o pulsar **Cancelar**.
+
+La lectura tiene un límite de 15 segundos y el selector de 2 minutos, incluido el tiempo para elegir. Al cancelar o vencer el plazo, se solicita terminar el proceso auxiliar y se descartan sus resultados tardíos. Puedes reintentar inmediatamente. En Linux, un proceso bloqueado por el núcleo en E/S puede tardar en finalizar; mdviewer no espera por él.
+
+Esta protección pertenece a la aplicación: no cambia montajes, conexiones, marcadores ni ajustes personales. No repara un servicio de red o del escritorio compartido que esté bloqueado. El selector aparece como ventana independiente para que el documento siga disponible.
 
 ## Alcance de esta versión
 
