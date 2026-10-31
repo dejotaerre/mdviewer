@@ -76,6 +76,8 @@ class Window(Adw.ApplicationWindow):
         header.set_title_widget(self.heading)
         layout.add_top_bar(header)
         self.action('edit', self.toggle_editor, ['<Primary>e'])
+        self.action('save-as', self.save_as, ['<Primary><Shift>s'])
+        self.lookup_action('save-as').set_enabled(False)
         self.action('save', self.save_document, ['<Primary>s'])
         self.edit_button = Gtk.Button(label='Editar', tooltip_text='Editar / vista previa (Ctrl+E)', action_name='win.edit')
         header.pack_start(self.edit_button)
@@ -92,7 +94,7 @@ class Window(Adw.ApplicationWindow):
         header.pack_start(Gtk.Button(icon_name='document-open-symbolic', tooltip_text='Abrir archivo (Ctrl+O)', action_name='win.open'))
         header.pack_end(Gtk.Button(icon_name='system-search-symbolic', tooltip_text='Buscar (Ctrl+F)', action_name='win.find'))
         menu = Gio.Menu()
-        for label, action in [('Acercar', 'zoom-in'), ('Alejar', 'zoom-out'), ('Tamaño original', 'zoom-reset'), ('Volver a cargar', 'reload')]:
+        for label, action in [('Guardar como…', 'save-as'), ('Acercar', 'zoom-in'), ('Alejar', 'zoom-out'), ('Tamaño original', 'zoom-reset'), ('Volver a cargar', 'reload')]:
             menu.append(label, 'win.' + action)
         header.pack_end(Gtk.MenuButton(icon_name='open-menu-symbolic', menu_model=menu))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -216,6 +218,7 @@ class Window(Adw.ApplicationWindow):
         state = 'Cambios sin guardar' if self.dirty else ('Edición' if editing else 'Lectura')
         self.status.set_label(f'{state} · {len(self.source.split()):,} palabras · {self.path.name}')
         self.lookup_action('edit').set_enabled(not self.saving)
+        self.lookup_action('save-as').set_enabled(not self.saving)
         self.lookup_action('save').set_enabled(self.dirty and not self.saving)
 
     def editor_changed(self, *_):
@@ -259,6 +262,32 @@ class Window(Adw.ApplicationWindow):
         self.start_job('save', [str(self.path)], 'Guardando archivo…', 15000, saved,
                        input_text=json.dumps(payload), cancel_previous=False)
 
+    def save_as(self):
+        if not self.path or self.saving:
+            return
+        name = self.path.stem + ' — copia' + (self.path.suffix or '.md')
+        self.start_job('choose-save', [name], 'Elige un nombre nuevo para la copia…', 120000,
+                       lambda result: self.save_as_selected(result['path']))
+
+    def save_as_selected(self, name):
+        snapshot = self.source
+        payload = dict(self.file_metadata, source=snapshot)
+        self.cancel_job()
+        self.saving = True
+        self.editor.set_editable(False)
+        self.update_document_state()
+        def saved(result):
+            self.path = Path(result['path'])
+            self.saved_source = snapshot
+            self.file_metadata['etag'] = result['etag']
+            self.heading.set_subtitle(str(self.path.parent))
+            if self.stack.get_visible_child_name() == 'document':
+                self.display_document()
+            self.update_document_state()
+            self.toast('Copia guardada. Ahora estás trabajando en la copia.')
+        self.start_job('save-copy', [name], 'Guardando copia…', 15000, saved,
+                       input_text=json.dumps(payload), cancel_previous=False)
+
     def toast(self, message):
         self.overlay.add_toast(Adw.Toast(title=message))
 
@@ -289,7 +318,7 @@ class Window(Adw.ApplicationWindow):
             self.job = None
             self.activity.set_visible(False)
             self.finish_saving()
-            if mode == 'save' and (result.get('timeout') or result.get('cancelled')):
+            if mode in ('save', 'save-copy') and (result.get('timeout') or result.get('cancelled')):
                 self.toast('Guardado sin confirmar. Tus cambios siguen en el editor; comprueba el archivo antes de reintentar.')
                 return
             if result.get('timeout'):

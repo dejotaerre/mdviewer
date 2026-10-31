@@ -44,13 +44,13 @@ Los paquetes DEB y RPM son `all` / `noarch`: contienen Python y recursos, sin bi
 ### Debian y Ubuntu
 
 ```sh
-sudo apt install ./mdviewer_0.2.0-1_all.deb
+sudo apt install ./mdviewer_0.2.1-1_all.deb
 ```
 
 ### Fedora
 
 ```sh
-sudo dnf install ./mdviewer-0.2.0-1.fc44.noarch.rpm
+sudo dnf install ./mdviewer-0.2.1-1.fc44.noarch.rpm
 ```
 
 El RPM se prepara para Fedora. No se anuncia compatibilidad con openSUSE, RHEL o derivados: los nombres y versiones de sus dependencias pueden ser diferentes. Debian 12 y Ubuntu 22.04 tampoco son objetivos de esta versión: se necesitan GTK 4.10+, libadwaita 1.4+ y WebKitGTK 6.
@@ -157,6 +157,8 @@ Creado por Dejotaerre. Construido con Python, GTK, libadwaita, WebKitGTK, markdo
 
 Pulsa **Editar** o **Ctrl+E** para modificar el Markdown del archivo abierto. El mismo botón alterna con la vista previa. **Ctrl+S** guarda los cambios; el editor permite deshacer y rehacer con los atajos habituales. Al cerrar, recargar o abrir otro documento, mdviewer pregunta si quieres guardar o descartar los cambios.
 
-El guardado conserva el BOM y los saltos de línea CRLF de archivos UTF-8, crea una copia anterior con sufijo `~` y rechaza sobrescribir un archivo que otro programa haya modificado desde su apertura. Actualmente se editan archivos existentes; no hay «Guardar como».
+El guardado conserva el BOM y los saltos de línea CRLF de archivos UTF-8, crea una copia anterior con sufijo `~` y rechaza sobrescribir un archivo que otro programa haya modificado desde su apertura. **Guardar como…**, en el menú o con **Ctrl+Mayús+S**, guarda el contenido actual en un archivo nuevo y pasa a trabajar sobre esa copia. El original permanece intacto. Se rechazan destinos existentes, incluso enlaces al original; elige otro nombre.
 
 El guardado también utiliza un proceso separado y un plazo de 15 segundos. Si se cancela o vence el plazo, conserva el texto editado y avisa que debes comprobar el archivo: cancelar no deshace una escritura que ya se haya completado.
+
+Si la creación de una copia falla o se cancela durante la escritura, puede quedar un archivo incompleto en el destino. Se conserva el documento en la ventana; comprueba esa copia antes de reintentar.

@@ -153,6 +153,30 @@ class EditingTests(WindowIOTests):
         self.assertEqual(self.path.read_text(), '# Documento anterior')
         self.assertTrue(self.window.editor.get_editable())
 
+    def test_save_as_switches_to_copy_and_preserves_original(self):
+        self.edit()
+        target = self.path.parent / 'copia.md'
+        self.window.save_as_selected(str(target))
+        self.wait_for(lambda: self.window.job is None)
+        self.assertEqual(self.path.read_text(), '# Documento anterior')
+        self.assertEqual(target.read_text(), self.window.source)
+        self.assertEqual(self.window.path, target)
+        self.assertFalse(self.window.dirty)
+        self.window.buffer.insert_at_cursor(' Más')
+        self.window.save_document()
+        self.wait_for(lambda: self.window.job is None)
+        self.assertEqual(self.path.read_text(), '# Documento anterior')
+        self.assertEqual(target.read_text(), self.window.source)
+
+    def test_save_as_existing_destination_preserves_edit(self):
+        self.edit()
+        self.window.save_as_selected(str(self.path))
+        self.wait_for(lambda: self.window.job is None)
+        self.assertTrue(self.window.dirty)
+        self.assertEqual(self.window.path, self.path)
+        self.assertEqual(self.path.read_text(), '# Documento anterior')
+
+
 
 if __name__ == '__main__':
     unittest.main()

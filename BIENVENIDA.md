@@ -37,3 +37,5 @@ print(saludar("Héctor"))
 ---
 
 Hecho para tu escritorio, sin servicios externos.
+
+- **Guardar como… / Ctrl+Mayús+S** crea una copia con otro nombre y deja intacto el original.

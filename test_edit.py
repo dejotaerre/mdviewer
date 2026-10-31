@@ -39,3 +39,31 @@ class SaveTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 save_document(str(path), document)
             self.assertFalse(path.exists())
+
+class SaveCopyTests(unittest.TestCase):
+    def test_copy_preserves_original_and_encoding(self):
+        from file_worker import save_copy
+        with tempfile.TemporaryDirectory() as root:
+            original = Path(root) / 'original.md'
+            original.write_bytes(b'\xef\xbb\xbf# Original\r\n')
+            payload = read_document(str(original))
+            payload['source'] = '# Copia\n'
+            target = Path(root) / 'copia.md'
+            result = save_copy(str(target), payload)
+            self.assertEqual(original.read_bytes(), b'\xef\xbb\xbf# Original\r\n')
+            self.assertEqual(target.read_bytes(), b'\xef\xbb\xbf# Copia\r\n')
+            self.assertTrue(result['etag'])
+
+    def test_existing_file_and_links_are_never_overwritten(self):
+        from file_worker import save_copy
+        with tempfile.TemporaryDirectory() as root:
+            original = Path(root) / 'original.md'
+            original.write_text('Original')
+            link = Path(root) / 'enlace.md'
+            link.symlink_to(original)
+            payload = read_document(str(original))
+            payload['source'] = 'Copia'
+            for target in (original, link):
+                with self.assertRaises(FileExistsError):
+                    save_copy(str(target), payload)
+            self.assertEqual(original.read_text(), 'Original')

@@ -30,6 +30,25 @@ def read_document(name):
             'etag': etag, 'bom': data.startswith(b'\xef\xbb\xbf'), 'newline': newline}
 
 
+def document_bytes(payload):
+    data = payload['source'].replace('\n', payload.get('newline', '\n')).encode('utf-8')
+    if payload.get('bom'):
+        data = b'\xef\xbb\xbf' + data
+    if len(data) > MAX_BYTES:
+        raise ValueError('El documento supera el límite de 10 MB.')
+    return data
+
+
+def save_copy(name, payload):
+    data = document_bytes(payload)
+    path = Path(name).absolute()
+    # La creación exclusiva rechaza destinos existentes, incluidos enlaces al original.
+    with path.open('xb') as stream:
+        stream.write(data)
+    etag = Gio.File.new_for_path(str(path)).query_info('etag::value', Gio.FileQueryInfoFlags.NONE, None).get_etag()
+    return {'path': str(path), 'etag': etag}
+
+
 def save_document(name, payload):
     path = Path(name)
     if not stat.S_ISREG(path.stat().st_mode):
@@ -38,11 +57,7 @@ def save_document(name, payload):
     etag = payload['etag']
     if not etag:
         raise ValueError('Vuelve a abrir el archivo antes de guardarlo.')
-    data = payload['source'].replace('\n', payload.get('newline', '\n')).encode('utf-8')
-    if payload.get('bom'):
-        data = b'\xef\xbb\xbf' + data
-    if len(data) > MAX_BYTES:
-        raise ValueError('El documento supera el límite de 10 MB.')
+    data = document_bytes(payload)
     try:
         _, new_etag = file.replace_contents(data, etag, True, Gio.FileCreateFlags.NONE, None)
     except GLib.Error as error:
@@ -53,7 +68,7 @@ def save_document(name, payload):
 
 
 
-def choose_file():
+def choose_file(save_name=None):
     import gi
     gi.require_version('Gtk', '4.0')
     from gi.repository import Gio, GLib, Gtk
@@ -63,7 +78,7 @@ def choose_file():
     Gtk.Window.set_default_icon_name('local.mdviewer')
     loop = GLib.MainLoop()
     payload = {'cancelled': True}
-    dialog = Gtk.FileDialog(title='Abrir Markdown — mdviewer', modal=False)
+    dialog = Gtk.FileDialog(title='Guardar como — mdviewer' if save_name else 'Abrir Markdown — mdviewer', modal=False)
     filters = Gio.ListStore.new(Gtk.FileFilter)
     markdown = Gtk.FileFilter(name='Markdown (*.md, *.markdown)')
     for pattern in ['*.[mM][dD]', '*.[mM][aA][rR][kK][dD][oO][wW][nN]']:
@@ -77,7 +92,7 @@ def choose_file():
     def selected(dialog, result):
         nonlocal payload
         try:
-            file = dialog.open_finish(result)
+            file = dialog.save_finish(result) if save_name else dialog.open_finish(result)
             name = file.get_path()
             payload = {'path': name} if name else {'error': 'Selecciona un archivo local o montado.'}
         except GLib.Error as error:
@@ -85,7 +100,11 @@ def choose_file():
                 payload = {'error': error.message}
         loop.quit()
 
-    dialog.open(None, None, selected)
+    if save_name:
+        dialog.set_initial_name(save_name)
+        dialog.save(None, None, selected)
+    else:
+        dialog.open(None, None, selected)
     loop.run()
     return payload
 
@@ -94,6 +113,10 @@ if __name__ == '__main__':
     try:
         if sys.argv[1] == 'choose':
             result = choose_file()
+        elif sys.argv[1] == 'choose-save':
+            result = choose_file(sys.argv[2])
+        elif sys.argv[1] == 'save-copy':
+            result = save_copy(sys.argv[2], json.load(sys.stdin))
         elif sys.argv[1] == 'save':
             result = save_document(sys.argv[2], json.load(sys.stdin))
         else:
